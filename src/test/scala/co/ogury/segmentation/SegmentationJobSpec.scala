@@ -11,7 +11,7 @@ import org.apache.spark.sql.Row
 
 class SegmentationJobSpec extends BaseSpec {
 
-  private val Id = "id"
+  private val Id = "customerId"
   private val defaultCustomerId = "customerId"
   private val otherCustomerId = "otherCustomerId"
   private val otherTransactions = Seq(
