@@ -29,7 +29,7 @@ class SegmentationJobSpec extends BaseSpec {
 
   "ActivitySegmentation" should "be 'undefined' for customers who have never bought" in {
     withSparkSession { session =>
-      Given("A customer without transactions")
+      Given("a customer without transactions")
       import session.implicits._
       val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
       val transactions = otherTransactions.toDS()
@@ -37,22 +37,54 @@ class SegmentationJobSpec extends BaseSpec {
       When("computing segmentation")
       val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
 
-      Then("Check segmentation ")
+      Then("checking segmentation")
       defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.UNDEFINED)
     }
   }
 
-  it should "be 'undefined' for customers who have first purchase after period" in {
-    // Todo implement test
-  }
-
-  it should "be 'new' if the first purchase is during period" in {
-    // Todo implement test
-  }
-
-  it should "be 'new' if the first purchase is during period with multiple purchases" in {
+  it should "be 'undefined' for customers who have first purchase after P" in {
     withSparkSession { session =>
-      Given("Multiple transaction during period")
+      Given("a customer with transactions only after period")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 23))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.UNDEFINED)
+    }
+  }
+
+  it should "be 'new' if the first purchase is during P" in {
+    withSparkSession { session =>
+      Given("a customer with one transaction during period")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 10))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation ")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.NEW)
+    }
+  }
+
+  it should "be 'new' if the first purchase is during P with multiple purchases" in {
+    withSparkSession { session =>
+      Given("a customer with multiple transactions during period")
       import session.implicits._
       val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
       val transactions = (
@@ -66,25 +98,94 @@ class SegmentationJobSpec extends BaseSpec {
       When("computing segmentation")
       val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
 
-      Then("Check segmentation ")
+      Then("checking segmentation ")
       defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.NEW)
     }
   }
 
-  it should "be 'new' if the first purchase is during period and with multiple purchases during and after period" in {
-    // Todo implement test
+  it should "be 'new' if the first purchase is during P and with multiple purchases during and after P" in {
+    withSparkSession { session =>
+      Given("a customer whose first purchase is during P with multiple others during and after P")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 10)),
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 13)),
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 2, 8)),
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 2, 14))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation ")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.NEW)
+    }
   }
 
   it should "be 'active' if there is a first-purchase is before P and a non-first purchase during P" in {
-    // Todo implement test
+    withSparkSession { session =>
+      Given("a customer whose first purchase is before P and a non-first purchase during P")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 3)),
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 13))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation ")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.ACTIVE)
+    }
   }
 
-  it should "be 'Inactive' if the first purchase is before period but no purchase during p" in {
-    // Todo implement test
+  it should "be 'Inactive' if the first purchase is before P but no purchase during P" in {
+    withSparkSession { session =>
+      Given("a customer whose first purchase is before P but no purchase during P")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 3))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation ")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.INACTIVE)
+    }
   }
 
-  it should "be 'Inactive' if the first purchase is before period and purchases after but no purchase during p" in {
-    // Todo implement test
+  it should "be 'Inactive' if the first purchase is before P and purchases after but no purchase during P" in {
+    withSparkSession { session =>
+      Given("a customer whose first purchase is before P and purchases after P but no purchase during P")
+      import session.implicits._
+      val customers = Seq(defaultCustomerId, otherCustomerId).toDF(Id).as[String]
+      val transactions = (
+        Seq(
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 3)),
+          genTransaction(defaultCustomerId, LocalDate.of(2018, 1, 15))
+        )
+          ++ otherTransactions
+        ).toDS()
+
+      When("computing segmentation")
+      val SegmentationDF = SegmentationJob.computeSegmentation(customers, transactions, startDate, endDate)
+
+      Then("checking segmentation ")
+      defaultCustomerShouldBeInSegment(SegmentationDF.collect(), ActivitySegment.INACTIVE)
+    }
   }
 
   private def genTransaction(customerId: String, date: LocalDate): Transaction =

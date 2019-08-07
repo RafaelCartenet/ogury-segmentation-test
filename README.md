@@ -49,3 +49,24 @@ You need to implement the methods in `src/main/scala/co/ogury/segmentation/Segme
   - Add the whole project files and results to an archive and send it by email.
   
 
+
+### Notes
+
+_Quick summary of my solution_
+
+Let's first give a small precision regarding segments.
+I assumed that:
+- if a transaction happens on the exact startDate time, then it belongs to the given period P.
+- likewise, if a transaction happens on the exact endDate time, it also belongs to the given period P.
+
+My solution is rather simple:
+1. Filter all transactions that occur before (or equal) endDate.
+2. By right joining customers to it, we only keep customers' transactions and we get null rows for customers with
+no transactions before endDate.
+3. We compute first_transaction and last_transaction dates for each customer, customers with no transactions will have null values.
+4. We then simply check the rule:
+  - if the customer has no transaction (last_transaction is null) =>  **undefined**. If not, customers have transactions
+  - if the customer's last transaction happens strictly before startDate => **inactive**. If not, customers have at least one transaction in P.
+  - if the first transaction happens strictly before startDate => **active**. If not, customers have only transactions in P => **new**.
+  
+It was my first time using scala and I must say it seems like a pretty interesting language that i am eager to learn more about!
